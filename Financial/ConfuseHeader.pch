@@ -1,0 +1,4 @@
+#ifndef ConfuseHeader_pch
+#define ConfuseHeader_pch
+#import "ProjectConfuse.h"
+#endif
