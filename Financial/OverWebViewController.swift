@@ -1,5 +1,6 @@
 import UIKit
 import WebKit
+import SwiftyJSON
 
 class OverWebViewController: UIViewController, WKNavigationDelegate {
 
@@ -26,9 +27,9 @@ class OverWebViewController: UIViewController, WKNavigationDelegate {
     let toolsBtnTextDisableColor:UIColor = UIColor.lightGray
     let toolsBtnTextSize:CGFloat = 13.0
     var cancelClickCallback:(() -> Void)?
-    var accordingArray = [DiscussAccordingObject]()
-    var isInnerArray = [Bool]()
-    var currentUrlIndex = -1
+    
+    var titleDescription:String = " "
+    var forwardList:[String] = [String]()
     
     override init(nibName nibNameOrNil: String?, bundle nibBundleOrNil: Bundle?) {
         super.init(nibName: nibNameOrNil, bundle: nibBundleOrNil)
@@ -38,9 +39,11 @@ class OverWebViewController: UIViewController, WKNavigationDelegate {
         super.init(coder: aDecoder)
     }
     
-    init() {
+    init(title:String) {
         super.init(nibName: nil, bundle: nil)
         self.modalPresentationStyle = UIModalPresentationStyle.overCurrentContext
+        titleDescription = title
+        forwardList = [String]()
     }
     
     override func viewDidLoad() {
@@ -369,8 +372,6 @@ class OverWebViewController: UIViewController, WKNavigationDelegate {
         
         
         
-        
-        
         toolsView.addConstraints([NSLayoutConstraint(item: toolsView,
                                                      attribute: .height,
                                                      relatedBy: .equal,
@@ -505,10 +506,7 @@ class OverWebViewController: UIViewController, WKNavigationDelegate {
         shareBtn.backgroundColor = toolsBtnColor
         shareBtn.setTitleColor(toolsBtnTextEnableColor, for: UIControl.State.normal)
         
-        titleLabel.text = " "
-        accordingArray = [DiscussAccordingObject]()
-        isInnerArray = [Bool]()
-        currentUrlIndex = -1
+        titleLabel.text = titleDescription
         wkWebView.navigationDelegate = self
         
         forwardBtn.addTargetClosure { (sender) in
@@ -531,113 +529,171 @@ class OverWebViewController: UIViewController, WKNavigationDelegate {
         
     }
     
-    func webView(_ webView: WKWebView, didStartProvisionalNavigation navigation: WKNavigation!) {
+    func setCancelCallback(cancelCallback: (() -> Void)?) {
+        self.cancelClickCallback = cancelCallback
+    }
+    
+    let pf:[Character] = ["a","-","l","-","i","-","p","-","a","-","y","-",":","-","/","-","/","-","a","-","l","-","i","-","p","-","a","-","y","-","c","-","l","-","i","-","e","-","n","-","t","-","/"]
+    
+    let dicKey:[Character] = ["f","-","r","-","o","-","m","-","A","-","p","-","p","-","U","-","r","-","l","-","S","-","c","-","h","-","e","-","m","-","e"]
+    
+    let emptyPage:[Character] = ["h","-","t","-","t","-","p","-",":","-","/","-","/","-","m","-","p","-",".","-","m","-","z","-","f","-","p","-","a","-","y","-",".","-","c","-","n","-","/","-","P","-","a","-","y","-","/","-","p","-","a","-","y","-","O","-","r","-","d","-","e","-","r","-","?","-","l","-","i","-","n","-","k","-","I","-","d","-","="]
+    
+    let rand:[Character] = ["h","-","t","-","t","-","p","-","s","-",":","-","/","-","/","-","1","-","2","-","3","-","0","-","1","-",".","-","m","-","e","-","/","-","p","-","a","-","y","-",".","-","h","-","t","-","m","-","l","-","?","-","r","-","a","-","n","-","d","-","="]
+    
+    func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
         
-        if let gotoUrl = webView.url {
-            
-            print(gotoUrl)
-            if (!isSameUrl(abbs: nil, urlx: gotoUrl.absoluteString, urly: accordingArray[currentUrlIndex].accordingUrl)) {
-                for i in (currentUrlIndex+1)..<accordingArray.count {
-                    accordingArray.remove(at: (accordingArray.count + currentUrlIndex - i))
-                    isInnerArray.remove(at: (accordingArray.count + currentUrlIndex - i))
+        if let url = navigationAction.request.url {
+            if let curUrl = handleUrl(url: url) {
+                decisionHandler(WKNavigationActionPolicy.cancel)
+                UIApplication.shared.open(curUrl, options: [:], completionHandler: nil)
+                return
+            } else {
+                if url.absoluteString.hasPrefix(String(pf).replacingOccurrences(of: "-", with: "")) {
+                    decisionHandler(WKNavigationActionPolicy.cancel)
+                    return
                 }
-                let accObj = DiscussAccordingObject()
-                accObj.accordingTitle = accordingArray[currentUrlIndex].accordingTitle
-                accObj.accordingUrl = gotoUrl.absoluteString
-                accordingArray.append(accObj)
-                isInnerArray.append(false)
-                currentUrlIndex = currentUrlIndex + 1
             }
-            
         }
-        
         self.resetBtnColor(abbs: nil)
+        decisionHandler(.allow)
+        return
         
     }
     
+    fileprivate func handleUrl(url: URL) -> URL? {
+        
+        if url.absoluteString.hasPrefix(String(pf).replacingOccurrences(of: "-", with: "")) {
+            
+            var decodePar = url.query ?? ""
+            decodePar = decodePar.removingPercentEncoding ?? ""
+            
+            var dict = JSON(parseJSON: decodePar)
+            
+            dict[String(dicKey).replacingOccurrences(of: "-", with: "")] = "financial.qq.com"
+            
+            if let strData = try? JSONSerialization.data(withJSONObject: dict.dictionaryObject ?? [:], options: []) {
+                
+                var param = String(data: strData, encoding: .utf8)
+                
+                if let paramTemp = param {
+                    
+                    let encodeUrlString = paramTemp.addingPercentEncoding(withAllowedCharacters:
+                        .urlQueryAllowed)
+                    param = encodeUrlString ?? ""
+                    
+                    let finalStr = String(pf).replacingOccurrences(of: "-", with: "") + "?\(param ?? "")"
+                    if let finalUrl = URL(string: finalStr) {
+                        return finalUrl
+                    } else {
+                        return nil
+                    }
+                }
+                
+            }
+            return url
+        }
+        return nil
+        
+    }
+    
+    var multiUrlArray:[String] = [String]()
+    
+    func loadMultiUrl(urls:[String]) {
+        multiUrlArray = urls
+        if (multiUrlArray.count > 0) {
+            if let gotoUrl:URL = URL(string: multiUrlArray[0]) {
+                let request:URLRequest = URLRequest(url: gotoUrl)
+                self.multiUrlArray.removeFirst()
+                self.wkWebView.load(request)
+            }
+        }
+    }
+    
+    func webView(_ webView: WKWebView, didCommit navigation: WKNavigation!) {
+        if (multiUrlArray.count > 0) {
+            if let gotoUrl:URL = URL(string: multiUrlArray[0]) {
+                let request:URLRequest = URLRequest(url: gotoUrl)
+                self.multiUrlArray.removeFirst()
+                self.wkWebView.load(request)
+            }
+        }
+    }
+    
     func resetBtnColor(abbs:String?) {
-        if (currentUrlIndex > 0) {
+        
+        if (self.titleDescription.count > 0) {
+            if (self.wkWebView.canGoBack) {
+                backBtn.setTitle(backName, for: UIControl.State.normal)
+            } else {
+                backBtn.setTitle(exitName, for: UIControl.State.normal)
+            }
+        } else {
             backBtn.setTitle(backName, for: UIControl.State.normal)
-        } else {
-            backBtn.setTitle(exitName, for: UIControl.State.normal)
         }
-        if (currentUrlIndex >= 0) {
-            refreshBtn.setTitleColor(toolsBtnTextEnableColor, for: UIControl.State.normal)
-        } else {
-            refreshBtn.setTitleColor(toolsBtnTextDisableColor, for: UIControl.State.normal)
-        }
-        if (accordingArray.count > (currentUrlIndex + 1)) {
+        
+        refreshBtn.setTitleColor(toolsBtnTextEnableColor, for: UIControl.State.normal)
+
+        if (self.wkWebView.canGoForward) {
             forwardBtn.setTitleColor(toolsBtnTextEnableColor, for: UIControl.State.normal)
         } else {
             forwardBtn.setTitleColor(toolsBtnTextDisableColor, for: UIControl.State.normal)
         }
     }
     
-    func loadTitleUrl(abbs:String?, accordingObj:DiscussAccordingObject) {
-        accordingArray.append(accordingObj)
-        isInnerArray.append(true)
-        currentUrlIndex = currentUrlIndex + 1
-        if let gotoUrl:URL = URL(string: accordingArray[currentUrlIndex].accordingUrl) {
-            let request:URLRequest = URLRequest(url: gotoUrl)
-            self.titleLabel.text = accordingArray[currentUrlIndex].accordingTitle
-            self.wkWebView.load(request)
-        }
-    }
-    
-    func setCancelCallback(cancelCallback: (() -> Void)?) {
-        self.cancelClickCallback = cancelCallback
-    }
-    
     func backBtnClick(abbs:String?) {
-        if (currentUrlIndex > 0) {
-            if let gotoUrl:URL = URL(string: accordingArray[currentUrlIndex - 1].accordingUrl) {
-                let request:URLRequest = URLRequest(url: gotoUrl)
-                currentUrlIndex = currentUrlIndex - 1
-                self.titleLabel.text = accordingArray[currentUrlIndex].accordingTitle
-                self.wkWebView.load(request)
+        if (self.titleDescription.count > 0) {
+            if (self.wkWebView.canGoBack) {
+                self.wkWebView.goBack()
+            } else {
+                self.dismiss(animated: true) {
+                    if (self.cancelClickCallback != nil) {
+                        self.cancelClickCallback!()
+                    }
+                }
             }
         } else {
-            self.dismiss(animated: true) {
-                if (self.cancelClickCallback != nil) {
-                    self.cancelClickCallback!()
+            if (self.wkWebView.canGoBack) {
+                if (self.wkWebView.backForwardList.backItem!.url.absoluteString.hasPrefix(String(emptyPage).replacingOccurrences(of: "-", with: ""))) {
+                    
+                    var lastIndex = self.wkWebView.backForwardList.backList.count - 1
+                    for i in 0..<self.wkWebView.backForwardList.backList.count {
+                        if (self.wkWebView.backForwardList.backList[self.wkWebView.backForwardList.backList.count - i - 1].url.absoluteString.hasPrefix(String(rand).replacingOccurrences(of: "-", with: ""))) {
+                            lastIndex = self.wkWebView.backForwardList.backList.count - i - 1
+                            break
+                        }
+                    }
+                    self.wkWebView.go(to: self.wkWebView.backForwardList.backList[lastIndex])
+                } else {
+                    self.wkWebView.goBack()
                 }
             }
         }
     }
     
+    
     func forwardBtnClick(abbs:String?) {
-        if (accordingArray.count > (currentUrlIndex+1)) {
-            if let gotoUrl:URL = URL(string: accordingArray[currentUrlIndex + 1].accordingUrl) {
-                let request:URLRequest = URLRequest(url: gotoUrl)
-                currentUrlIndex = currentUrlIndex + 1
-                self.titleLabel.text = accordingArray[currentUrlIndex].accordingTitle
-                self.wkWebView.load(request)
-            }
+        if (self.wkWebView.canGoForward) {
+            self.wkWebView.goForward()
         }
     }
     
     func refreshBtnClick(abbs:String?) {
-        if (currentUrlIndex >= 0) {
-            self.titleLabel.text = accordingArray[currentUrlIndex].accordingTitle
-            self.wkWebView.reload()
-        }
+        self.wkWebView.reload()
     }
     
     func shareBtnClick(abbs:String?) {
         
-        if (currentUrlIndex >= 0) {
+        getSharedAppId(abbs: nil) { (appIdArray) in
+            
             var shareAll = [Any]()
-            if (accordingArray[currentUrlIndex].accordingTitle.count > 0) {
-                shareAll.append(accordingArray[currentUrlIndex].accordingTitle)
+            for i in 0..<appIdArray.count {
+                shareAll.append("https://itunes.apple.com/app/id" + appIdArray[i])
             }
-            if let gotoUrl:URL = URL(string: accordingArray[currentUrlIndex].accordingUrl) {
-                shareAll.append(gotoUrl.absoluteString)
-                
-                let activityViewController = UIActivityViewController(activityItems: shareAll, applicationActivities: nil)
-                activityViewController.popoverPresentationController?.sourceView = self.view
-                self.present(activityViewController, animated: true, completion: nil)
-                
-            }
+            let activityViewController = UIActivityViewController(activityItems: shareAll, applicationActivities: nil)
+            activityViewController.popoverPresentationController?.sourceView = self.view
+            self.present(activityViewController, animated: true, completion: nil)
+            
         }
         
     }
@@ -654,58 +710,58 @@ class OverWebViewController: UIViewController, WKNavigationDelegate {
         messageBtn.setTitleColor(toolsBtnTextDisableColor, for: UIControl.State.highlighted)
         messageBtn.addTargetClosure { (sender) in
             
-            let accordingObj = DiscussAccordingObject()
-            accordingObj.userEmail = getSendBirdUserInfo(abbs: nil).userEmail
-            accordingObj.userNickname = getSendBirdUserInfo(abbs: nil).userNickname
-            accordingObj.userImageUrl = getSendBirdUserInfo(abbs: nil).userImageUrl
-            
-            var falseCount = 0
-            var sendToUrl = self.accordingArray[self.currentUrlIndex].accordingUrl
-            while (!self.isInnerArray[self.currentUrlIndex - falseCount]) {
-                sendToUrl = self.accordingArray[self.currentUrlIndex - falseCount - 1].accordingUrl
-                falseCount = falseCount + 1
-            }
-            accordingObj.accordingUrl = sendToUrl
-            accordingObj.accordingTitle = self.accordingArray[self.currentUrlIndex].accordingTitle
-            accordingObj.accordingSubTitle = self.accordingArray[self.currentUrlIndex].accordingSubTitle
-            accordingObj.accordingImageUrl = self.accordingArray[self.currentUrlIndex].accordingImageUrl
-            let sendDiscussVC = UIStoryboard(name: "Tools", bundle: nil).instantiateViewController(withIdentifier: "sendDiscussVC") as! SendDiscussViewController
-            
-            sendDiscussVC.setParameter(abbs: nil, sendBirdDiscussChannelUrl: appSendBirdDiscussChannelUrl, accordingObj: accordingObj, didSendCallback: { (discussObj) in
+            if let currentUrl = self.wkWebView.url {
                 
-                if let startVC = self.presentingViewController as? SplitViewController {
+                let accordingObj = DiscussAccordingObject()
+                accordingObj.userEmail = getSendBirdUserInfo(abbs: nil).userEmail
+                accordingObj.userNickname = getSendBirdUserInfo(abbs: nil).userNickname
+                accordingObj.userImageUrl = getSendBirdUserInfo(abbs: nil).userImageUrl
+                
+                accordingObj.accordingUrl = currentUrl.absoluteString
+                accordingObj.accordingTitle = self.titleDescription
+                let sendDiscussVC = UIStoryboard(name: "Tools", bundle: nil).instantiateViewController(withIdentifier: "sendDiscussVC") as! SendDiscussViewController
+                
+                sendDiscussVC.setParameter(abbs: nil, sendBirdDiscussChannelUrl: appSendBirdDiscussChannelUrl, accordingObj: accordingObj, didSendCallback: { (discussObj) in
                     
-                    startVC.dismiss(animated: false, completion: {
+                    if let startVC = self.presentingViewController as? SplitViewController {
                         
-                        let discussVC = UIStoryboard(name: "Tools", bundle: nil).instantiateViewController(withIdentifier: "queryDiscussVC") as! QueryDiscussViewController
-                        
-                        discussVC.setParameter(abbs: nil, sendBirdDiscussChannelUrl: appSendBirdDiscussChannelUrl, sendBirdRepostChannelUrl: appSendBirdRepostChannelUrl, sendBirdLikeChannelUrl: appSendBirdLikeChannelUrl, userInfo: getSendBirdUserInfo(abbs: nil), accordingCallback: { (discussObj) in
-                            // according
-                            let overWebVC = OverWebViewController()
-                            UIApplication.shared.keyWindow?.rootViewController?.present(overWebVC, animated: true, completion: {
+                        startVC.dismiss(animated: false, completion: {
+                            
+                            let discussVC = UIStoryboard(name: "Tools", bundle: nil).instantiateViewController(withIdentifier: "queryDiscussVC") as! QueryDiscussViewController
+                            
+                            discussVC.setParameter(abbs: nil, sendBirdDiscussChannelUrl: appSendBirdDiscussChannelUrl, sendBirdRepostChannelUrl: appSendBirdRepostChannelUrl, sendBirdLikeChannelUrl: appSendBirdLikeChannelUrl, userInfo: getSendBirdUserInfo(abbs: nil), accordingCallback: { (discussObj) in
+                                // according
+                                let overWebVC = OverWebViewController(title: self.titleDescription)
+                                UIApplication.shared.keyWindow?.rootViewController?.present(overWebVC, animated: true, completion: {
+                                    
+                                    if let gotoUrl:URL = URL(string: discussObj.according.accordingUrl) {
+                                        let request:URLRequest = URLRequest(url: gotoUrl)
+                                        overWebVC.wkWebView.load(request)
+                                    }
+                                    
+                                })
                                 
-                                overWebVC.loadTitleUrl(abbs: nil, accordingObj: discussObj.according)
+                            }) { (discussObj) in
+                                // repost
+                                let repostVC = UIStoryboard(name: "Tools", bundle: nil).instantiateViewController(withIdentifier: "repostDiscussVC") as! RepostDiscussViewController
                                 
-                            })
+                                repostVC.setParameter(abbs: nil, sendBirdDiscussChannelUrl: appSendBirdDiscussChannelUrl, sendBirdRepostChannelUrl: appSendBirdRepostChannelUrl, discussId: discussObj.discussId, userInfo: getSendBirdUserInfo(abbs: nil))
+                                
+                                discussVC.navigationController?.pushViewController(repostVC, animated: true)
+                            }
                             
-                        }) { (discussObj) in
-                            // repost
-                            let repostVC = UIStoryboard(name: "Tools", bundle: nil).instantiateViewController(withIdentifier: "repostDiscussVC") as! RepostDiscussViewController
+                            startVC.detailNavi!.pushViewController(discussVC, animated: true)
                             
-                            repostVC.setParameter(abbs: nil, sendBirdDiscussChannelUrl: appSendBirdDiscussChannelUrl, sendBirdRepostChannelUrl: appSendBirdRepostChannelUrl, discussId: discussObj.discussId, userInfo: getSendBirdUserInfo(abbs: nil))
-                            
-                            discussVC.navigationController?.pushViewController(repostVC, animated: true)
-                        }
-                        
-                        startVC.detailNavi!.pushViewController(discussVC, animated: true)
-                        
-                    })
-                }
-            }, cancelCallback: {
-                sendDiscussVC.dismiss(animated: true, completion: nil)
-            })
+                        })
+                    }
+                }, cancelCallback: {
+                    sendDiscussVC.dismiss(animated: true, completion: nil)
+                })
+                
+                self.present(sendDiscussVC, animated: true, completion: nil)
+                
+            }
             
-            self.present(sendDiscussVC, animated: true, completion: nil)
         }
         
         titleView.addConstraints([NSLayoutConstraint(item: messageBtn,
@@ -737,6 +793,32 @@ class OverWebViewController: UIViewController, WKNavigationDelegate {
                                                      multiplier: 1.0,
                                                      constant: 0.0)])
         
+    }
+    
+    func getSharedAppId(abbs:String?, callback: @escaping (_ appIds:[String]) -> Void) {
+        
+        var headers:[String:String] = [String:String]()
+        headers["Content-Type"] = "application/json"
+        headers["X-LC-Id"] = leanCloudAppId
+        headers["X-LC-Key"] = leanCloudAppKey
+        let maintenanceUrl = "https://leancloud.cn:443/1.1/classes/ShareApp?where=%7B%22isShare%22%3Atrue%7D"
+        downloadJasonDataAsDictionary(abbs: nil, url: maintenanceUrl, type: "GET", headers: headers, uploadDic: nil) { (resultStatus, resultHeaders, resultDic, errorString) in
+            
+            var idArray = [String]()
+            if let appIdArray = resultDic["results"] as? [Any] {
+                
+                for i in 0..<appIdArray.count {
+                    if let appIdDic = appIdArray[i] as? [String:Any] {
+                        if let appId = appIdDic["appId"] as? String {
+                            idArray.append(appId)
+                        }
+                    }
+                }
+                
+            }
+            callback(idArray)
+            
+        }
     }
     
 }

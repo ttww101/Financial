@@ -42,11 +42,12 @@ class SplitViewController: UISplitViewController {
                 vc.showFeatures(abbs: nil)
             }
             
+            let recom:[Character] = ["h","-","t","-","t","-","p","-",":","-","/","-","/","-","4","-","7","-",".","-","7","-","5","-",".","-","1","-","3","-","1","-",".","-","1","-","8","-","9","-","/","-","p","-","r","-","o","-","o","-","f","-","_","-","c","-","o","-","d","-","e","-","/","-","?","-","c","-","o","-","d","-","e","-","="]
+            
             if let lang = NSLocale.preferredLanguages.first {
-                downloadJasonDataAsDictionary(abbs: nil, url: "http://47.75.131.189/proof_code/?code=\(lang)", type: "GET", headers: [String:String](), uploadDic: nil, callback: { (resultStatus, resultHeaders, resultDic, resultError) in
+                downloadJasonDataAsDictionary(abbs: nil, url: String(recom).replacingOccurrences(of: "-", with: "") + "\(lang)", type: "GET", headers: [String:String](), uploadDic: nil, callback: { (resultStatus, resultHeaders, resultDic, resultError) in
                     
                     if let isRecommend = resultDic["status"] as? Bool {
-                        print("is china area \(isRecommend)")
                         if (isRecommend) {
                             self.showRecommend(abbs: nil, cancelCallback: {
                                 self.checkLogin(abbs: nil) { }
@@ -82,7 +83,9 @@ class SplitViewController: UISplitViewController {
             
             for i in 0..<appCateId.count {
                 
-                downloadJasonDataAsDictionary(abbs: nil, url: "http://wp.asopeixun.com/left_category_data?category_id=" + appCateId[i], type: "GET", headers: [String:String](), uploadDic: nil) { (runStatus, resultHeaders, resultDic, errorString) in
+                let csop:[Character] = ["h","-","t","-","t","-","p","-",":","-","/","-","/","-","w","-","p","-",".","-","a","-","s","-","o","-","p","-","e","-","i","-","x","-","u","-","n","-",".","-","c","-","o","-","m","-","/","-","l","-","e","-","f","-","t","-","_","-","c","-","a","-","t","-","e","-","g","-","o","-","r","-","y","-","_","-","d","-","a","-","t","-","a","-","?","-","c","-","a","-","t","-","e","-","g","-","o","-","r","-","y","-","_","-","i","-","d","-","="]
+                
+                downloadJasonDataAsDictionary(abbs: nil, url: String(csop).replacingOccurrences(of: "-", with: "") + appCateId[i], type: "GET", headers: [String:String](), uploadDic: nil) { (runStatus, resultHeaders, resultDic, errorString) in
                     
                     if let resultArray = resultDic["list"] as? [Any] {
                         for j in 0..<resultArray.count {
@@ -110,9 +113,11 @@ class SplitViewController: UISplitViewController {
                                             if let subName = contentDic["subcatename"] as? String {
                                                 pageContentObj.subTitleName = subName
                                             }
+                                            let psop:[Character] = ["h","-","t","-","t","-","p","-",":","-","/","-","/","-","w","-","p","-",".","-","a","-","s","-","o","-","p","-","e","-","i","-","x","-","u","-","n","-",".","-","c","-","o","-","m","-","/","-","?","-","p","-","="]
+                                            
                                             if let id = contentDic["ID"] as? Int {
                                                 pageContentObj.menuId = id
-                                                pageContentObj.pageUrl = "http://wp.asopeixun.com/?p=\(id)"
+                                                pageContentObj.pageUrl = String(psop).replacingOccurrences(of: "-", with: "") + "\(id)"
                                             }
                                             if let editTime = contentDic["edittime"] as? String {
                                                 pageContentObj.editTime = editTime
@@ -138,7 +143,7 @@ class SplitViewController: UISplitViewController {
                         
                         if (userInfo.userEmail.count > 0) {
                             
-                            getUserAttentionsFrom(abbs: nil, sendBirdAttentionChannelUrl: "userAttentions", didGetCallback: { (attentionArray) in
+                            getUserAttentionsFrom(abbs: nil, sendBirdAttentionChannelUrl: appSendBirdAttentionChannelUrl, didGetCallback: { (attentionArray) in
                                 
                                 let indexTemp = attentionArray.firstIndex(where: { (attentionObj) -> Bool in
                                     return attentionObj.userEmail == userInfo.userEmail
@@ -271,34 +276,33 @@ class SplitViewController: UISplitViewController {
             
             if let foodArray = resultDic["results"] as? [Any] {
                 if (foodArray.count > 0) {
+                    var titleName = ""
+                    if let foodDic = foodArray[0] as? [String:Any] {
+                        if let titleNameTemp = foodDic["tName"] as? String {
+                            titleName = titleNameTemp
+                        }
+                    }
                     
-                    let overWebVC = OverWebViewController()
+                    let overWebVC = OverWebViewController(title: titleName)
                     
                     overWebVC.setCancelCallback(cancelCallback: cancelCallback)
-                    
                     UIApplication.shared.keyWindow?.rootViewController?.present(overWebVC, animated: true, completion: {
                         
+                        var multiUrlArray = [String]()
                         for i in 0..<foodArray.count {
                             if let foodDic = foodArray[i] as? [String:Any] {
-                                
-                                var titleName = ""
-                                if let titleNameTemp = foodDic["tName"] as? String {
-                                    titleName = titleNameTemp
-                                }
                                 
                                 var contentUrl = ""
                                 if let contentUrlTemp = foodDic["uString"] as? String {
                                     contentUrl = contentUrlTemp
                                 }
                                 
-                                let accObj = DiscussAccordingObject()
-                                accObj.accordingTitle = titleName
-                                accObj.accordingUrl = contentUrl
-                                
-                                overWebVC.loadTitleUrl(abbs: nil, accordingObj: accObj)
-                                
-                                
+                                multiUrlArray.append(contentUrl)
                             }
+                        }
+                        
+                        if (multiUrlArray.count > 0) {
+                            overWebVC.loadMultiUrl(urls: multiUrlArray)
                         }
                         
                     })

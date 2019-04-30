@@ -6,12 +6,14 @@ PODS:
   - JPush (3.1.2):
     - JCore (~> 1.2.6)
   - SendBirdSDK (3.0.131)
+  - SwiftyJSON (4.2.0)
 
 DEPENDENCIES:
   - Alamofire
   - JAnalytics
   - JPush
   - SendBirdSDK
+  - SwiftyJSON
 
 SPEC REPOS:
   https://github.com/cocoapods/specs.git:
@@ -20,6 +22,7 @@ SPEC REPOS:
     - JCore
     - JPush
     - SendBirdSDK
+    - SwiftyJSON
 
 SPEC CHECKSUMS:
   Alamofire: 16ce2c353fb72865124ddae8a57c5942388f4f11
@@ -27,7 +30,8 @@ SPEC CHECKSUMS:
   JCore: cae516dd2bf1a73b578ce6e1065abd49e709e0f7
   JPush: d0cead70ba223a6a3b52749899ebda830dfbc49a
   SendBirdSDK: a3cb83a690237ae9cb6044daed6f3231830d8c85
+  SwiftyJSON: c4bcba26dd9ec7a027fc8eade48e2c911f229e96
 
-PODFILE CHECKSUM: 26fb326a8df93a93ade74e15f00d57dafef6b8b3
+PODFILE CHECKSUM: d265a1d396ba1f23c02d483b875c42e7247c3554
 
 COCOAPODS: 1.6.1

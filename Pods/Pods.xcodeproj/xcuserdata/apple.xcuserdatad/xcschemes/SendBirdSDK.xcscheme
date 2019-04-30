@@ -14,7 +14,7 @@
             buildForArchiving = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "5504DC217A786BE28A7EC537B985618A"
+               BlueprintIdentifier = "68812CDB7B01D79ED732D7662AC0757C"
                BuildableName = "SendBirdSDK"
                BlueprintName = "SendBirdSDK"
                ReferencedContainer = "container:Pods.xcodeproj">

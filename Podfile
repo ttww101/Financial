@@ -10,15 +10,6 @@ target 'Financial' do
   pod 'SendBirdSDK'
   pod 'JPush'
   pod 'JAnalytics'
-
-  target 'FinancialTests' do
-    inherit! :search_paths
-    # Pods for testing
-  end
-
-  target 'FinancialUITests' do
-    inherit! :search_paths
-    # Pods for testing
-  end
+  pod 'SwiftyJSON'
 
 end

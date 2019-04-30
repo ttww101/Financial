@@ -1,26 +1,14 @@
 import UIKit
 import CoreData
 
-class ViewController: UIViewController, UISearchResultsUpdating  {
+class ViewController: UIViewController  {
     
     @IBOutlet weak var currencyMainView: UIView!
     @IBOutlet weak var currencyTitleLabel: UILabel!
-    @IBOutlet weak var currencyFromView: UIView!
-    @IBOutlet weak var currencyDescLabel1: UILabel!
-    @IBOutlet weak var currencyToView: UIView!
-    @IBOutlet weak var currencyDescLabel2: UILabel!
-    @IBOutlet weak var currencyInputTextField: UITextField!
-    @IBOutlet weak var currencyStartBtn: UIButton!
-    @IBOutlet weak var currencyResultTitleView: UIView!
-    @IBOutlet weak var currencyResultTitleLabel: UILabel!
-    @IBOutlet weak var currencyResultLabelMain: UILabel!
-    @IBOutlet weak var currencyResultLabelSub: UILabel!
-    var currencyFromSpinner:SimpleSpinner?
-    var currencyToSpinner:SimpleSpinner?
+    @IBOutlet weak var calculateTV: CalculateTableView!
     var currencyObjectArray = [CurrencyObject]()
-    var currencyNameArray = [String]()
-    var currencyFromNameArray = [String]()
-    var currencyToNameArray = [String]()
+    var mainCurrencyId = ""
+    var enableCurrencyIdArray = [String]()
     
     @IBOutlet weak var sphereContentView: UIView!
     var sphereView:AASphereView?
@@ -28,9 +16,7 @@ class ViewController: UIViewController, UISearchResultsUpdating  {
     @IBOutlet weak var viewControllerTV: ViewControllerTableView!
     
     @IBOutlet weak var noneLabel: UILabel!
-    
-    var searchController:UISearchController!
-    
+
     let homeName = "首页"
     let featuresName = "换汇计算机"
     let attentionName = "关注"
@@ -38,10 +24,6 @@ class ViewController: UIViewController, UISearchResultsUpdating  {
     let commentName = "评论"
     let userInfoName = "个人"
     let noneAttentionName = "您没关注任何文章"
-    let searchPlaceholderName = "请输入关键字..."
-    let searchBarBgColor:UIColor = UIColor.clear
-    let searchBarTextColor:UIColor = UIColor.white
-    let searchBarButtonColor:UIColor = UIColor.white
     
     var selectCateName = ""
     var toolbarSelectIndex = 3
@@ -51,36 +33,33 @@ class ViewController: UIViewController, UISearchResultsUpdating  {
         super.viewDidLoad()
         
         currencyTitleLabel.textColor = appSubColor
-        currencyDescLabel1.textColor = appSubColor
-        currencyDescLabel2.textColor = appSubColor
-        currencyStartBtn.layer.backgroundColor = appSubColor.cgColor
-        currencyStartBtn.layer.cornerRadius = 22
-        currencyStartBtn.clipsToBounds = true
-        currencyResultTitleView.backgroundColor = appSubColor
-        currencyResultLabelMain.textColor = appSubColor
-        currencyInputTextField.text = ""
-        currencyResultTitleLabel.text = "計算結果"
-        currencyResultLabelMain.text = ""
-        currencyResultLabelSub.text = ""
-        
         self.title = featuresName
+        
+        mainCurrencyId = "CNY"
+        if let main = UserDefaults.standard.string(forKey: "mainCurrencyId") {
+            mainCurrencyId = main
+        } else {
+            UserDefaults.standard.set(mainCurrencyId, forKey: "mainCurrencyId")
+        }
+        
+        enableCurrencyIdArray = [String]()
+        enableCurrencyIdArray.append("CNY")
+        enableCurrencyIdArray.append("USD")
+        enableCurrencyIdArray.append("EUR")
+        if let idArray = UserDefaults.standard.stringArray(forKey: "enableCurrencyIdArray") {
+            enableCurrencyIdArray = idArray
+        } else {
+            UserDefaults.standard.set(enableCurrencyIdArray, forKey: "enableCurrencyIdArray")
+        }
+        
+        calculateTV.dataSource = calculateTV.self
+        calculateTV.delegate = calculateTV.self
+        calculateTV.vcInstance = self
         
         viewControllerTV.contentInset = UIEdgeInsets(top: CGFloat(5), left: CGFloat(0), bottom: CGFloat(5), right: CGFloat(0))
         viewControllerTV.dataSource = viewControllerTV.self
         viewControllerTV.delegate = viewControllerTV.self
         viewControllerTV.vcInstance = self
-        
-        searchController = UISearchController(searchResultsController: nil)
-        searchController.searchBar.tintColor = searchBarButtonColor
-        searchController.searchBar.backgroundColor = searchBarBgColor
-        
-        UITextField.appearance(whenContainedInInstancesOf: [UISearchBar.self]).defaultTextAttributes = [NSAttributedString.Key.foregroundColor : searchBarTextColor]
-        
-        searchController.searchResultsUpdater = self
-        searchController.dimsBackgroundDuringPresentation = false
-        searchController.searchBar.placeholder = searchPlaceholderName
-        searchController.searchBar.sizeToFit()
-        navigationItem.searchController = searchController
         self.navigationController?.definesPresentationContext = true
         
     }
@@ -88,6 +67,7 @@ class ViewController: UIViewController, UISearchResultsUpdating  {
     override func viewWillAppear(_ animated: Bool) {
         
         self.navigationController?.setToolbarHidden(false, animated: false)
+        
         self.navigationController?.toolbar.barTintColor = self.navigationController?.navigationBar.barTintColor
         
     }
@@ -212,98 +192,38 @@ class ViewController: UIViewController, UISearchResultsUpdating  {
         self.noneLabel.isHidden = true
         self.sphereContentView.isHidden = true
         self.currencyMainView.isHidden = false
-        if (currencyFromSpinner != nil) {
-            currencyFromSpinner!.removeSpinner(abbs: nil)
-        }
-        if (currencyToSpinner != nil) {
-            currencyToSpinner!.removeSpinner(abbs: nil)
-        }
-        currencyInputTextField.text = ""
-        currencyResultTitleLabel.text = "計算結果"
-        currencyResultLabelMain.text = ""
-        currencyResultLabelSub.text = ""
         
         currencyObjectArray = [CurrencyObject]()
-        currencyNameArray = [String]()
-        currencyFromNameArray = [String]()
-        currencyToNameArray = [String]()
-        
-        isSpinnerInit = true
         getCurrencyObjectArray(abbs: nil) { (currencyObjArray) in
-            self.currencyObjectArray = currencyObjArray
-            for i in 0..<self.currencyObjectArray.count {
-                self.currencyNameArray.append(self.currencyObjectArray[i].id + " " + getCurrencyNameCn(abbs: nil, id: self.currencyObjectArray[i].id))
-            }
-            self.currencyFromNameArray = self.currencyNameArray
-            self.currencyFromSpinner = SimpleSpinner()
-            self.currencyFromSpinner!.createSpinner(abbs: nil, insideOfView: self.currencyFromView, titleArray: self.currencyFromNameArray, textAlignment: NSTextAlignment.center, dropTextAlignment: UIControl.ContentHorizontalAlignment.left, callback: { (position) in
-                
-                if (self.isSpinnerInit) {
-                    self.isSpinnerInit = false
-                    self.currencyFromSpinner!.setSelection(abbs: nil, position: 22, completion: {
-                        
-                    })
-                } else {
-                    self.currencyInputTextField.text = ""
-                    self.currencyResultTitleLabel.text = "計算結果"
-                    self.currencyResultLabelMain.text = ""
-                    self.currencyResultLabelSub.text = ""
-                    
-                    if (self.currencyToSpinner != nil) {
-                        self.currencyToSpinner!.removeSpinner(abbs: nil)
-                    }
-                    self.currencyToNameArray = [String]()
-                    for i in 0..<self.currencyFromNameArray.count {
-                        if (i != position) {
-                            self.currencyToNameArray.append(self.currencyFromNameArray[i])
-                        }
-                    }
-                    self.currencyToSpinner = SimpleSpinner()
-                    self.currencyToSpinner?.createSpinner(abbs: nil, insideOfView: self.currencyToView, titleArray: self.currencyToNameArray, textAlignment: NSTextAlignment.center, dropTextAlignment: UIControl.ContentHorizontalAlignment.left, callback: { (toPosition) in
-                        
-                        self.currencyInputTextField.text = ""
-                        self.currencyResultTitleLabel.text = "計算結果"
-                        self.currencyResultLabelMain.text = ""
-                        self.currencyResultLabelSub.text = ""
-                        
-                    })
-                }
-                
+            
+            var tempArray = [CurrencyObject]()
+            
+            let firstIndex = currencyObjArray.firstIndex(where: { (curObj) -> Bool in
+                return curObj.id == self.mainCurrencyId
             })
-        }
-        
-        currencyStartBtn.addTargetClosure { (sender) in
-            if (self.currencyFromSpinner != nil) {
-                if (self.currencyToSpinner != nil) {
-                    if (self.currencyFromSpinner!.spinnerDefaultItemPosition >= 0) {
-                        if (self.currencyToSpinner!.spinnerDefaultItemPosition >= 0) {
-                            if let valueText = self.currencyInputTextField.text {
-                                if let valueDouble = Double(valueText) {
-                                    let fromObjIndex = self.currencyFromSpinner!.spinnerDefaultItemPosition
-                                    var toObjIndex = self.currencyToSpinner!.spinnerDefaultItemPosition
-                                    if (toObjIndex >= fromObjIndex) {
-                                        toObjIndex = toObjIndex + 1
-                                    }
-                                    let fromConName = getCurrencyNameCn(abbs: nil, id: self.currencyObjectArray[fromObjIndex].id)
-                                    let toConName = getCurrencyNameCn(abbs: nil, id: self.currencyObjectArray[toObjIndex].id)
-                                    self.currencyResultTitleLabel.text = fromConName + " 兑换 " + toConName + " 計算結果"
-                                    getCurrencyValue(abbs: nil, fromCurrencyId: self.currencyObjectArray[fromObjIndex].id, toCurrencyId: self.currencyObjectArray[toObjIndex].id, callback: { (currencyPer) in
-                                        if let per = currencyPer {
-                                            let formatter = NumberFormatter()
-                                            formatter.maximumFractionDigits = 2
-                                            if let valueString = formatter.string(from: NSNumber(value: valueDouble*per)) {
-                                                self.currencyResultLabelMain.text = toConName + " : " + self.currencyObjectArray[toObjIndex].currencySymbol + " " + valueString
-                                            }
-                                            
-                                            self.currencyResultLabelSub.text = "汇率 : \(per)"
-                                        }
-                                    })
-                                }
-                            }
-                        }
-                    }
+            if (firstIndex != nil) {
+                tempArray.append(currencyObjArray[firstIndex!])
+            }
+            
+            for i in 0..<currencyObjArray.count {
+                if (currencyObjArray[i].id != self.mainCurrencyId && self.enableCurrencyIdArray.contains(currencyObjArray[i].id)) {
+                    tempArray.append(currencyObjArray[i])
                 }
             }
+            for i in 0..<currencyObjArray.count {
+                if (!self.enableCurrencyIdArray.contains(currencyObjArray[i].id)) {
+                    tempArray.append(currencyObjArray[i])
+                }
+            }
+            
+            self.currencyObjectArray = tempArray
+            
+            self.calculateTV.reloadData()
+            
+            if let cell = self.calculateTV.cellForRow(at: IndexPath(row: 0, section: 0)) as? CalculateTableViewCell {
+                cell.priceInputTextField.becomeFirstResponder()
+            }
+            
         }
         
     }
@@ -321,85 +241,35 @@ class ViewController: UIViewController, UISearchResultsUpdating  {
             self.viewControllerTV.cateDataList.append(self.viewControllerTV.allDataList[i])
         }
         
-        self.searchController.isActive = false
-        
-        if (self.isFiltering()) {
-            
-            self.resetSphereView(abbs: nil)
-            var tags = [UIView]()
-            var displaySize = 60
-            if (self.viewControllerTV.showDataList.count < 60) {
-                displaySize = self.viewControllerTV.showDataList.count
-            }
-            for i in 0..<displaySize {
-                let button = UIButton.init()
-                button.backgroundColor = appSubTransColor
-                button.contentEdgeInsets = UIEdgeInsets(top: 5.0, left: 10.0, bottom: 5.0, right: 10.0)
-                button.titleLabel?.font = UIFont.boldSystemFont(ofSize: 13.0)
-                button.setTitle(self.viewControllerTV.showDataList[i].titleName, for: .normal)
-                button.setTitleColor(UIColor.white, for: .normal)
-                button.tag = i
-                button.addTargetClosure(closure: { (sender) in
+        self.resetSphereView(abbs: nil)
+        var tags = [UIView]()
+        var displaySize = 60
+        if (self.viewControllerTV.cateDataList.count < 60) {
+            displaySize = self.viewControllerTV.cateDataList.count
+        }
+        for i in 0..<displaySize {
+            let button = UIButton.init()
+            button.backgroundColor = appSubTransColor
+            button.contentEdgeInsets = UIEdgeInsets(top: 5.0, left: 10.0, bottom: 5.0, right: 10.0)
+            button.titleLabel?.font = UIFont.boldSystemFont(ofSize: 13.0)
+            button.setTitle(self.viewControllerTV.cateDataList[i].titleName, for: .normal)
+            button.setTitleColor(UIColor.white, for: .normal)
+            button.tag = i
+            button.addTargetClosure(closure: { (sender) in
+                
+                let overWebVC = OverWebViewController(title: self.viewControllerTV.cateDataList[sender.tag].titleName)
+                UIApplication.shared.keyWindow?.rootViewController?.present(overWebVC, animated: true, completion: {
                     
-                    let overWebVC = OverWebViewController()
-                    UIApplication.shared.keyWindow?.rootViewController?.present(overWebVC, animated: true, completion: {
-                        
-                        let accObj = DiscussAccordingObject()
-                        accObj.accordingTitle = self.viewControllerTV.showDataList[sender.tag].titleName
-                        accObj.accordingSubTitle = self.viewControllerTV.showDataList[sender.tag].subTitleName
-                        accObj.accordingImageUrl = self.viewControllerTV.showDataList[sender.tag].imageUrl
-                        accObj.accordingUrl = self.viewControllerTV.showDataList[sender.tag].pageUrl
-                        
-                        overWebVC.loadTitleUrl(abbs: nil, accordingObj: accObj)
-                        
-                    })
+                    overWebVC.loadMultiUrl(urls: [self.viewControllerTV.cateDataList[sender.tag].pageUrl])
                     
                 })
-                button.sizeToFit()
-                tags.append(button)
                 
-            }
-            self.sphereView!.setTagViews(abbs: nil, array: tags)
-            
-        } else {
-            
-            self.resetSphereView(abbs: nil)
-            var tags = [UIView]()
-            var displaySize = 60
-            if (self.viewControllerTV.cateDataList.count < 60) {
-                displaySize = self.viewControllerTV.cateDataList.count
-            }
-            for i in 0..<displaySize {
-                let button = UIButton.init()
-                button.backgroundColor = appSubTransColor
-                button.contentEdgeInsets = UIEdgeInsets(top: 5.0, left: 10.0, bottom: 5.0, right: 10.0)
-                button.titleLabel?.font = UIFont.boldSystemFont(ofSize: 13.0)
-                button.setTitle(self.viewControllerTV.cateDataList[i].titleName, for: .normal)
-                button.setTitleColor(UIColor.white, for: .normal)
-                button.tag = i
-                button.addTargetClosure(closure: { (sender) in
-                    
-                    let overWebVC = OverWebViewController()
-                    UIApplication.shared.keyWindow?.rootViewController?.present(overWebVC, animated: true, completion: {
-                        
-                        let accObj = DiscussAccordingObject()
-                        accObj.accordingTitle = self.viewControllerTV.cateDataList[sender.tag].titleName
-                        accObj.accordingSubTitle = self.viewControllerTV.cateDataList[sender.tag].subTitleName
-                        accObj.accordingImageUrl = self.viewControllerTV.cateDataList[sender.tag].imageUrl
-                        accObj.accordingUrl = self.viewControllerTV.cateDataList[sender.tag].pageUrl
-                        
-                        overWebVC.loadTitleUrl(abbs: nil, accordingObj: accObj)
-                    })
-                    
-                })
-                button.sizeToFit()
-                tags.append(button)
-                
-            }
-            self.sphereView!.setTagViews(abbs: nil, array: tags)
+            })
+            button.sizeToFit()
+            tags.append(button)
             
         }
-        
+        self.sphereView!.setTagViews(abbs: nil, array: tags)
         
     }
     
@@ -410,8 +280,6 @@ class ViewController: UIViewController, UISearchResultsUpdating  {
         self.sphereContentView.isHidden = true
         self.viewControllerTV.isHidden = false
         self.noneLabel.isHidden = true
-        
-        self.searchController.isActive = false
         
         self.viewControllerTV.cateDataList = [NewPageObject]()
         for i in 0..<self.viewControllerTV.allDataList.count {
@@ -444,10 +312,11 @@ class ViewController: UIViewController, UISearchResultsUpdating  {
         
         discussVC.setParameter(abbs: nil, sendBirdDiscussChannelUrl: appSendBirdDiscussChannelUrl, sendBirdRepostChannelUrl: appSendBirdRepostChannelUrl, sendBirdLikeChannelUrl: appSendBirdLikeChannelUrl, userInfo: getSendBirdUserInfo(abbs: nil), accordingCallback: { (discussObj) in
             // according
-            let overWebVC = OverWebViewController()
+            let overWebVC = OverWebViewController(title: discussObj.according.accordingTitle)
             UIApplication.shared.keyWindow?.rootViewController?.present(overWebVC, animated: true, completion: {
                 
-                overWebVC.loadTitleUrl(abbs: nil, accordingObj: discussObj.according)
+                overWebVC.loadMultiUrl(urls: [discussObj.according.accordingUrl])
+                
                 
             })
             
@@ -545,95 +414,39 @@ class ViewController: UIViewController, UISearchResultsUpdating  {
             return isContains
         })
         
-        if (self.isFiltering()) {
-            
-            self.resetSphereView(abbs: nil)
-            var tags = [UIView]()
-            var displaySize = 60
-            if (self.viewControllerTV.showDataList.count < 60) {
-                displaySize = self.viewControllerTV.showDataList.count
-            }
-            for i in 0..<displaySize {
-                let button = UIButton.init()
-                button.backgroundColor = appSubTransColor
-                button.contentEdgeInsets = UIEdgeInsets(top: 5.0, left: 10.0, bottom: 5.0, right: 10.0)
-                button.titleLabel?.font = UIFont.boldSystemFont(ofSize: 13.0)
-                button.setTitle(self.viewControllerTV.showDataList[i].titleName, for: .normal)
-                button.setTitleColor(UIColor.white, for: .normal)
-                button.tag = i
-                button.addTargetClosure(closure: { (sender) in
+        self.resetSphereView(abbs: nil)
+        var tags = [UIView]()
+        var displaySize = 60
+        if (self.viewControllerTV.cateDataList.count < 60) {
+            displaySize = self.viewControllerTV.cateDataList.count
+        }
+        for i in 0..<displaySize {
+            let button = UIButton.init()
+            button.backgroundColor = appSubTransColor
+            button.contentEdgeInsets = UIEdgeInsets(top: 5.0, left: 10.0, bottom: 5.0, right: 10.0)
+            button.titleLabel?.font = UIFont.boldSystemFont(ofSize: 13.0)
+            button.setTitle(self.viewControllerTV.cateDataList[i].titleName, for: .normal)
+            button.setTitleColor(UIColor.white, for: .normal)
+            button.tag = i
+            button.addTargetClosure(closure: { (sender) in
+                
+                let overWebVC = OverWebViewController(title: self.viewControllerTV.cateDataList[sender.tag].titleName)
+                UIApplication.shared.keyWindow?.rootViewController?.present(overWebVC, animated: true, completion: {
                     
-                    let overWebVC = OverWebViewController()
-                    UIApplication.shared.keyWindow?.rootViewController?.present(overWebVC, animated: true, completion: {
-                        
-                        let accObj = DiscussAccordingObject()
-                        accObj.accordingTitle = self.viewControllerTV.showDataList[sender.tag].titleName
-                        accObj.accordingSubTitle = self.viewControllerTV.showDataList[sender.tag].subTitleName
-                        accObj.accordingImageUrl = self.viewControllerTV.showDataList[sender.tag].imageUrl
-                        accObj.accordingUrl = self.viewControllerTV.showDataList[sender.tag].pageUrl
-                        
-                        overWebVC.loadTitleUrl(abbs: nil, accordingObj: accObj)
-                        
-                    })
+                    overWebVC.loadMultiUrl(urls: [self.viewControllerTV.cateDataList[sender.tag].pageUrl])
+                    
                     
                 })
-                button.sizeToFit()
-                tags.append(button)
                 
-            }
-            self.sphereView!.setTagViews(abbs: nil, array: tags)
-            
-        } else {
-            
-            self.resetSphereView(abbs: nil)
-            var tags = [UIView]()
-            var displaySize = 60
-            if (self.viewControllerTV.cateDataList.count < 60) {
-                displaySize = self.viewControllerTV.cateDataList.count
-            }
-            for i in 0..<displaySize {
-                let button = UIButton.init()
-                button.backgroundColor = appSubTransColor
-                button.contentEdgeInsets = UIEdgeInsets(top: 5.0, left: 10.0, bottom: 5.0, right: 10.0)
-                button.titleLabel?.font = UIFont.boldSystemFont(ofSize: 13.0)
-                button.setTitle(self.viewControllerTV.cateDataList[i].titleName, for: .normal)
-                button.setTitleColor(UIColor.white, for: .normal)
-                button.tag = i
-                button.addTargetClosure(closure: { (sender) in
-                    
-                    let overWebVC = OverWebViewController()
-                    UIApplication.shared.keyWindow?.rootViewController?.present(overWebVC, animated: true, completion: {
-                        
-                        let accObj = DiscussAccordingObject()
-                        accObj.accordingTitle = self.viewControllerTV.cateDataList[sender.tag].titleName
-                        accObj.accordingSubTitle = self.viewControllerTV.cateDataList[sender.tag].subTitleName
-                        accObj.accordingImageUrl = self.viewControllerTV.cateDataList[sender.tag].imageUrl
-                        accObj.accordingUrl = self.viewControllerTV.cateDataList[sender.tag].pageUrl
-                        
-                        overWebVC.loadTitleUrl(abbs: nil, accordingObj: accObj)
-                        
-                    })
-                    
-                })
-                button.sizeToFit()
-                tags.append(button)
-                
-            }
-            self.sphereView!.setTagViews(abbs: nil, array: tags)
+            })
+            button.sizeToFit()
+            tags.append(button)
             
         }
-        
+        self.sphereView!.setTagViews(abbs: nil, array: tags)
         self.viewControllerTV.reloadData()
         
     }
     
-    func isFiltering() -> Bool {
-        return searchController.isActive && !searchBarIsEmpty()
-    }
-    
-    func searchBarIsEmpty() -> Bool {
-        // Returns true if the text is empty or nil
-        return searchController.searchBar.text?.isEmpty ?? true
-    }
 }
 

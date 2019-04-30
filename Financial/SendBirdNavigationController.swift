@@ -1,6 +1,6 @@
 import UIKit
 
-class SendBirdNavigationController: UINavigationController {
+class SendBirdNavigationController: UINavigationController, UIGestureRecognizerDelegate {
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -13,7 +13,12 @@ class SendBirdNavigationController: UINavigationController {
         mTitleAttributes[NSAttributedString.Key.foregroundColor] = appLightColor
         self.navigationBar.titleTextAttributes = mTitleAttributes
         
+        self.interactivePopGestureRecognizer?.delegate = self
+        
     }
     
+    func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
+        return false
+    }
 
 }
